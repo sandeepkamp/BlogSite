@@ -21,13 +21,14 @@ class StorePost extends FormRequest
     }
 
     public function store(StorePostRequest $request)
-{
+   {
     $data = $request->only('title', 'body');
     $data['slug'] = str_slug($data['title']);
     $data['user_id'] = Auth::user()->id;
     $post = Post::create($data);
     return redirect()->route('edit_post', ['id' => $post->id]);
-}
+   }
+
 
     /**
      * Get the validation rules that apply to the request.
@@ -39,7 +40,7 @@ class StorePost extends FormRequest
         return [
             //
             'title' => 'required|unique:posts',
-        'body' => 'require'
+            'body' => 'require'
         ];
     }
 }

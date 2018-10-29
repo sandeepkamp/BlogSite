@@ -11,32 +11,35 @@ use App\Http\Requests\UpdatePost as UpdatePostRequest;
 
 class PostController extends Controller
 {
-       public function index()
-      {
-         $posts = Post::published()->paginate();
-         return view('posts.index', compact('posts'));
-       }
+   public function index()
+   {
+     $posts = Post::orderby('id', 'desc')->paginate();
+     return view('posts.index', compact('posts'));
+   }
 
 
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+   public function store(Request $request){ 
 
-      public function store(Request $request) { 
-
-        
-            $this->validate($request, [
-              'title' => 'required|max:255',
-              'body'  => 'required'
-            ]);
+    $this->validate($request, [
+    'title' => 'required|max:255',
+    'body'  => 'required'
+     ]);
           
-            $post = new Post;
-            Post::create([
-                'body' => request('body'),
-                'title' => request('title'),
-                'user_id' => auth()->id(),
-                'slug' => str_slug(request('title'), '-')
-            ]);
-
-            return redirect()->route('list_posts')
-            ->with('flash_message','Article successfully created');
+     $post = new Post;
+     Post::create([
+        'body' => request('body'),
+        'title' => request('title'),
+        'user_id' => auth()->id(),
+        'slug' => str_slug(request('title'), '-')
+     ]);
+     return redirect()->route('list_posts')
+     ->with('flash_message','Article successfully created');
             //$post->['user_id'] = $request->Auth::user()->id;
            // $post->title = $request->input('title');
            // $post->body = $request->input('body');
@@ -47,59 +50,63 @@ class PostController extends Controller
           
            //$post = Post::create($data);
           // return redirect()->route('edit_post', ['id' => $post->id]);
+    }
+
+
+    public function drafts()
+   {
+      $postsQuery = Post::unpublished();
+      if(Gate::denies('see-all-drafts')) {
+         $postsQuery = $postsQuery->where('user_id', Auth::user()->id);
         }
+        $posts = $postsQuery->paginate();
+        return view('posts.drafts', compact('posts'));
+   }
 
 
-     /*  public function store(StorePostRequest $request)
+  public function publish(Post $post)
+  {
+    $post->published = true;
+    $post->save();
+    return back();
+  }
+
+   /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+
+  public function show($id)
+   {
+     $post = Post::published()->findOrFail($id);
+     return view('posts.show', compact('post'));
+   }
+       
+   /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
+
+   public function create()
     {
-    $data = $request->only('title', 'body');
-    $data['slug'] = str_slug($data['title']);
-    $data['user_id'] = Auth::user()->id;
-    $post = Post::create($data);
-    return redirect()->route('edit_post', ['id' => $post->id]);
-    }*/
+     return view('posts.create');
+    }
 
-       public function drafts()
-       {
-           $postsQuery = Post::unpublished();
-           if(Gate::denies('see-all-drafts')) {
-               $postsQuery = $postsQuery->where('user_id', Auth::user()->id);
-           }
-           $posts = $postsQuery->paginate();
-           return view('posts.drafts', compact('posts'));
-       }
+    public function edit(Post $post)
+    {
+      return view('posts.edit', compact('post'));
+    }
 
-
-        public function publish(Post $post)
-        {
-          $post->published = true;
-          $post->save();
-         return back();
-       }
-
-        public function show($id)
-        {
-         $post = Post::published()->findOrFail($id);
-         return view('posts.show', compact('post'));
-        }
-
-        public function create()
-        {
-           return view('posts.create');
-        }
-
-        public function edit(Post $post)
-        {
-            return view('posts.edit', compact('post'));
-        }
-
-       public function update(Post $post, UpdatePostRequest $request)
-       {
-          $data = $request->only('title', 'body');
-          $data['slug'] = str_slug($data['title']);
-          $post->fill($data)->save();
-          return back();
-       }
+    public function update(Post $post, UpdatePostRequest $request)
+    {
+     $data = $request->only('title', 'body');
+     $data['slug'] = str_slug($data['title']);
+     $post->fill($data)->save();
+     return back();
+    }
 
          /**
      * Remove the specified resource from storage.
@@ -110,6 +117,7 @@ class PostController extends Controller
     public function destroy($id) {
         $post = Post::findOrFail($id);
         $post->delete();
-        return redirect()->route('posts.index') ->with('flash_message','Article successfully deleted');
+        return redirect()->route('posts.index');
     }
+    
 }
